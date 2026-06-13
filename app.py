@@ -334,7 +334,7 @@ with st.sidebar:
             unsafe_allow_html=True,
         )
     st.markdown("---")
-    st.caption("7-sponsor AI research infrastructure")
+    st.caption("8-sponsor AI research infrastructure")
 
 # ── Main ────────────────────────────────────────────────────────────────────
 pipeline = st.session_state.pipeline
@@ -483,8 +483,8 @@ if pipeline:
     st.markdown(
         '<div class="tile" style="padding-bottom:0.75rem;">'
         '<p style="color:#64748b;font-size:0.85rem;margin:0;">'
-        "The break-in agent runs in a secure Daytona sandbox — generating collaborators, "
-        "cold emails, conferences, and a step-by-step action plan."
+        "The break-in agent runs in a secure Daytona sandbox. Outputs are attested with "
+        "a verifiable Terminal 3 agent identity (DID + signature)."
         "</p></div>",
         unsafe_allow_html=True,
     )
@@ -517,6 +517,16 @@ if pipeline:
 
     plan = st.session_state.break_in
     if plan:
+        att = plan.get("agent_attestation") or {}
+        if att.get("verified"):
+            st.markdown(
+                f'<div class="tile" style="padding:0.85rem 1.1rem;margin-bottom:0.75rem;">'
+                f'<div class="tile-label">Terminal 3 · Verifiable Agent Identity</div>'
+                f'<p style="color:#1a1a2e;font-size:0.82rem;margin:0.35rem 0 0;">'
+                f'<b>Agent DID:</b> <span style="color:#0ea5e9;">{att.get("agent_did", "")}</span><br>'
+                f'<b>Payload hash:</b> {att.get("payload_hash", "")[:24]}…</p></div>',
+                unsafe_allow_html=True,
+            )
         tabs = st.tabs(["Emails", "Collaborators", "Conferences", "Action plan"])
         with tabs[0]:
             for i, e in enumerate(plan.get("cold_emails", [])):
@@ -564,4 +574,7 @@ else:
         unsafe_allow_html=True,
     )
 
-st.markdown('<div class="footer-note">Bright Data · Kimi · TokenRouter · Nosana · Daytona · SenseNova · VideoDB</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="footer-note">Bright Data · Kimi · TokenRouter · Nosana · Daytona · SenseNova · VideoDB · Terminal 3</div>',
+    unsafe_allow_html=True,
+)

@@ -15,6 +15,7 @@ from fieldguide.sponsors.registry import PipelineProvenance
 from fieldguide.sponsors.sensenova import generate_field_visual
 from fieldguide.sponsors.tokenrouter import ROUTING_TABLE
 from fieldguide.sponsors.videodb import fetch_talk_insights
+from fieldguide.sponsors.terminal3 import attest_break_in_plan
 
 
 @dataclass
@@ -132,5 +133,14 @@ def run_break_in_agent(
         "daytona",
         "ok" if runtime.get("runtime") == "daytona-sandbox" else "fallback",
         runtime.get("note", "Break-in agent executed"),
+    )
+
+    attestation, t3_source = attest_break_in_plan(topic, plan)
+    plan["agent_attestation"] = attestation
+    provenance.record(
+        "identity",
+        "terminal3",
+        "ok" if attestation.get("verified") else "fallback",
+        f"Agent DID attestation ({t3_source})",
     )
     return plan, runtime

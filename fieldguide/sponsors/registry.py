@@ -58,9 +58,9 @@ SPONSORS: dict[str, Sponsor] = {
     ),
     "sensenova": Sponsor(
         id="sensenova",
-        name="SenseNova",
+        name="SenseNova U1",
         role="Multimodal Insight Layer",
-        tagline="Generates structured visual representations of research fields",
+        tagline="U1 image generation for structured visual field maps",
         color="#ec4899",
         icon="🎨",
     ),
@@ -71,6 +71,14 @@ SPONSORS: dict[str, Sponsor] = {
         tagline="Converts conference talks into structured research signals",
         color="#8b5cf6",
         icon="🎥",
+    ),
+    "terminal3": Sponsor(
+        id="terminal3",
+        name="Terminal 3",
+        role="Verifiable Agent Identity",
+        tagline="Cryptographic agent DID attestation for break-in outputs",
+        color="#0ea5e9",
+        icon="🔐",
     ),
 }
 
@@ -83,6 +91,7 @@ PIPELINE_STAGES = [
     ("visual", "sensenova", "Visual field mapping"),
     ("talks", "videodb", "Conference talk intelligence"),
     ("agent", "daytona", "Secure agent execution"),
+    ("identity", "terminal3", "Verifiable agent identity"),
 ]
 
 

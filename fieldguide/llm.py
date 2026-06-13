@@ -31,6 +31,7 @@ def _chat_completions(
     messages: list[dict[str, str]],
     task: str = "field_synthesis",
     temperature: float = 0.4,
+    cache_key: str | None = None,
 ) -> str:
     """TokenRouter orchestrates model selection, Kimi executes synthesis."""
     from fieldguide.sponsors.tokenrouter import TaskType

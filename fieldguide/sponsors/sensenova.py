@@ -1,4 +1,4 @@
-"""SenseNova — multimodal visual field mapping."""
+"""SenseNova U1 — multimodal visual field mapping."""
 
 from __future__ import annotations
 
@@ -7,29 +7,35 @@ from typing import Any
 
 import httpx
 
-SENSENOVA_URL = "https://token.sensenova.cn/v1/chat/completions"
-SENSENOVA_MODELS = (
+SENSENOVA_BASE = "https://token.sensenova.cn/v1"
+SENSENOVA_CHAT_MODELS = (
     "sensenova-6.7-flash-lite",
     "sensenova-6.7-flash",
     "deepseek-v4-flash",
 )
+SENSENOVA_U1_MODEL = "sensenova-u1-fast"
 
 
 def generate_field_visual(
     topic: str,
     analysis: dict[str, Any],
 ) -> tuple[str, str]:
-    """Generate visual field map. Returns (html, source)."""
+    """Generate visual field map via SenseNova U1. Returns (html, source)."""
     api_key = os.getenv("SENSENOVA_API_KEY", "").strip()
     if api_key and not api_key.startswith("SN-PLACEHOLDER"):
         try:
-            visual = _sensenova_api_visual(topic, analysis, api_key)
+            visual = _sensenova_u1_image(topic, analysis, api_key)
+            if visual:
+                return visual, "sensenova-u1"
+        except Exception:
+            pass
+        try:
+            visual = _sensenova_chat_visual(topic, analysis, api_key)
             if visual:
                 return visual, "sensenova"
         except Exception:
             pass
 
-    # Kimi-assisted visual brief when SenseNova API unavailable (console down / 401)
     try:
         brief = _kimi_visual_brief(topic, analysis)
         if brief:
@@ -40,7 +46,41 @@ def generate_field_visual(
     return _local_field_svg(topic, analysis), "sensenova-local-render"
 
 
-def _sensenova_api_visual(topic: str, analysis: dict[str, Any], api_key: str) -> str | None:
+def _sensenova_u1_image(topic: str, analysis: dict[str, Any], api_key: str) -> str | None:
+    """SenseNova U1 Fast — infographic field map generation."""
+    topics = ", ".join(analysis.get("trending_topics", [])[:5])
+    directions = ", ".join(analysis.get("future_directions", [])[:3])
+    growth = analysis.get("growth_percent", 30)
+    prompt = (
+        f"Research field infographic map for '{topic}'. "
+        f"Trending clusters: {topics}. Future directions: {directions}. "
+        f"Growth: {growth}%. Clean academic infographic, blue and purple palette, "
+        f"node clusters connected by lines, modern data visualization style."
+    )
+    with httpx.Client(timeout=120.0, trust_env=False) as client:
+        resp = client.post(
+            f"{SENSENOVA_BASE}/images/generations",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": SENSENOVA_U1_MODEL,
+                "prompt": prompt,
+                "size": "1376x768",
+                "n": 1,
+            },
+        )
+        if resp.status_code != 200:
+            return None
+        data = resp.json().get("data") or []
+        if not data or not data[0].get("url"):
+            return None
+        image_url = data[0]["url"]
+        return _wrap_image_html(topic, image_url, "SenseNova U1 · Visual Field Map")
+
+
+def _sensenova_chat_visual(topic: str, analysis: dict[str, Any], api_key: str) -> str | None:
     topics = ", ".join(analysis.get("trending_topics", [])[:5])
     directions = ", ".join(analysis.get("future_directions", [])[:3])
     prompt = (
@@ -48,11 +88,10 @@ def _sensenova_api_visual(topic: str, analysis: dict[str, Any], api_key: str) ->
         f"Trending areas: {topics}. Future directions: {directions}. "
         f"Return a concise structured summary with 3 clusters and key connections."
     )
-
-    for model in SENSENOVA_MODELS:
+    for model in SENSENOVA_CHAT_MODELS:
         with httpx.Client(timeout=60.0, trust_env=False) as client:
             resp = client.post(
-                SENSENOVA_URL,
+                f"{SENSENOVA_BASE}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -67,6 +106,16 @@ def _sensenova_api_visual(topic: str, analysis: dict[str, Any], api_key: str) ->
                 content = resp.json()["choices"][0]["message"]["content"]
                 return _local_field_svg(topic, analysis, content)
     return None
+
+
+def _wrap_image_html(topic: str, image_url: str, label: str) -> str:
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f4ff;">
+<div style="font-size:0.65rem;color:#6366f1;letter-spacing:0.1em;text-transform:uppercase;
+font-weight:600;padding:0.5rem 0.5rem 0;">{label}</div>
+<img src="{image_url}" alt="{topic} field map"
+     style="width:100%;height:auto;border-radius:16px;display:block;"/>
+</body></html>"""
 
 
 def _kimi_visual_brief(topic: str, analysis: dict[str, Any]) -> str:
@@ -84,6 +133,7 @@ def _kimi_visual_brief(topic: str, analysis: dict[str, Any]) -> str:
             }
         ],
         temperature=0.3,
+        cache_key="fieldguide-visual-brief",
     )
     return content.strip()
 
@@ -93,7 +143,7 @@ def _local_field_svg(
     analysis: dict[str, Any],
     brief: str = "",
 ) -> str:
-    """Premium SVG field map — SenseNova visual layer (local render)."""
+    """SVG field map fallback render."""
     topics = analysis.get("trending_topics", [])[:5]
     directions = analysis.get("future_directions", [])[:3]
     growth = analysis.get("growth_percent", 30)
@@ -128,7 +178,7 @@ def _local_field_svg(
 
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:0;background:#f0f4ff;">
 <div style="font-size:0.65rem;color:#6366f1;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.35rem;font-weight:600;padding:0.5rem 0.5rem 0;">
-  SenseNova · Visual Field Map
+  SenseNova U1 · Visual Field Map
 </div>
 <svg viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
   <rect width="800" height="420" fill="#f0f4ff" rx="16"/>

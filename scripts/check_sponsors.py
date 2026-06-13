@@ -45,7 +45,7 @@ def main() -> int:
         ok = False
         detail = "failed all endpoints"
         for base in ("https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"):
-            for model in ("kimi-k2", "moonshot-v1-8k", "moonshot-v1-32k"):
+            for model in ("kimi-k2.6", "kimi-k2", "moonshot-v1-8k", "moonshot-v1-32k"):
                 try:
                     r = httpx.post(
                         f"{base}/chat/completions",
@@ -112,17 +112,27 @@ def main() -> int:
 
     # Nosana
     key = os.getenv("NOSANA_API_KEY", "").strip()
+    api_base = os.getenv("NOSANA_API_URL", "https://dashboard.k8s.prd.nos.ci/api").rstrip("/")
     url = os.getenv("NOSANA_EMBED_URL", "").strip()
     if not key:
         results.append(check("Nosana", False, "NOSANA_API_KEY missing"))
-    elif url:
+    else:
         try:
-            r = httpx.post(url, headers={"Authorization": f"Bearer {key}"}, json={"inputs": ["test"]}, timeout=25, trust_env=False)
-            results.append(check("Nosana", r.status_code == 200, f"Embed endpoint HTTP {r.status_code}"))
+            r = httpx.get(
+                f"{api_base}/credits",
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=25,
+                trust_env=False,
+            )
+            if r.status_code == 200:
+                results.append(check("Nosana", True, f"Credits API OK ({api_base})"))
+            elif url:
+                r2 = httpx.post(url, headers={"Authorization": f"Bearer {key}"}, json={"inputs": ["test"]}, timeout=25, trust_env=False)
+                results.append(check("Nosana", r2.status_code == 200, f"Embed endpoint HTTP {r2.status_code}"))
+            else:
+                results.append(check("Nosana", False, f"Credits HTTP {r.status_code} — set NOSANA_EMBED_URL"))
         except Exception as e:
             results.append(check("Nosana", False, str(e)[:100]))
-    else:
-        results.append(check("Nosana", True, f"Key present ({key[:10]}…) — set NOSANA_EMBED_URL for live GPU"))
 
     # SenseNova
     key = os.getenv("SENSENOVA_API_KEY", "").strip()
@@ -132,8 +142,21 @@ def main() -> int:
         try:
             ok_sn = False
             detail_sn = "failed"
-            for base in ("https://api.sensenova.cn/v1", "https://token.sensenova.cn/v1"):
-                for model in ("sensenova-6.7-flash-lite", "sensenova-6.7-flash", "deepseek-v4-flash"):
+            for base in ("https://token.sensenova.cn/v1", "https://api.sensenova.cn/v1"):
+                for model in ("sensenova-u1-fast", "sensenova-6.7-flash-lite", "sensenova-6.7-flash"):
+                    if model == "sensenova-u1-fast":
+                        r = httpx.post(
+                            f"{base}/images/generations",
+                            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                            json={"model": model, "prompt": "test field map", "size": "1376x768", "n": 1},
+                            timeout=60,
+                            trust_env=False,
+                        )
+                        if r.status_code == 200:
+                            ok_sn, detail_sn = True, f"{base} U1 image OK"
+                            break
+                        detail_sn = f"{base}/U1 HTTP {r.status_code}: {r.text[:60]}"
+                        continue
                     r = httpx.post(
                         f"{base}/chat/completions",
                         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
@@ -166,6 +189,20 @@ def main() -> int:
             results.append(check("VideoDB", True, "Connected successfully"))
         except Exception as e:
             results.append(check("VideoDB", False, str(e)[:100]))
+
+    # Terminal 3
+    key = os.getenv("T3N_API_KEY", "").strip() or os.getenv("TERMINAL3_API_KEY", "").strip()
+    try:
+        from fieldguide.sponsors.terminal3 import attest_break_in_plan
+
+        att, src = attest_break_in_plan("test", {"cold_emails": [], "potential_collaborators": [], "action_plan": []})
+        ok_t3 = bool(att.get("verified"))
+        detail_t3 = f"Agent DID attestation ({src})"
+        if key:
+            detail_t3 += " + T3N key configured"
+        results.append(check("Terminal 3", ok_t3, detail_t3))
+    except Exception as e:
+        results.append(check("Terminal 3", False, str(e)[:100]))
 
     print("\nSPONSOR API KEY HEALTH CHECK\n" + "=" * 62)
     fails = 0

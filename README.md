@@ -38,16 +38,17 @@ Each sponsor powers a distinct stage in the pipeline:
 | **TokenRouter** | Model Orchestration | Routes synthesis, email generation, and summarization to optimal models |
 | **Nosana** | Embedding + Graph Compute | Computes embeddings for the research landscape graph |
 | **Daytona** | Secure Agent Runtime | Runs the break-in research agent in an isolated sandbox |
-| **SenseNova** | Multimodal Insight Layer | Generates structured visual field maps |
-| **VideoDB** | Academic Talk Intelligence | Extracts structured signals from conference talks |
+| **SenseNova U1** | Multimodal Insight Layer | Generates visual field maps via U1 image generation |
+| **VideoDB** | Academic Talk Intelligence | Video search, indexing, and perception for conference talks |
+| **Terminal 3** | Verifiable Agent Identity | Agent DID attestation for break-in agent outputs |
 
 ## Tech stack
 
 - **Frontend:** Streamlit (light glassmorphic dashboard)
 - **Graph:** pyvis / vis-network interactive node graph
-- **LLM:** Kimi via TokenRouter with local fallbacks
-- **Agent runtime:** Daytona sandbox
-- **Data:** OpenAlex → Semantic Scholar → Bright Data scraping pipeline
+- **LLM:** Kimi K2.6 via TokenRouter with prefix context caching
+- **Agent runtime:** Daytona sandbox + Terminal 3 agent DID
+- **Data:** Bright Data → OpenAlex → Semantic Scholar ingestion pipeline
 
 ## Quick start
 
@@ -70,10 +71,13 @@ BRIGHTDATA_ZONE=scraping_browser1   # optional
 KIMI_API_KEY=...
 TOKENROUTER_API_KEY=...
 NOSANA_API_KEY=...
-NOSANA_EMBED_URL=...                # optional
+NOSANA_API_URL=https://dashboard.k8s.prd.nos.ci/api
+NOSANA_EMBED_URL=...                # optional GPU embeddings
 DAYTONA_API_KEY=...
 SENSENOVA_API_KEY=...
 VIDEODB_API_KEY=...
+VIDEODB_VIDEO_URL=...               # optional video URL for live indexing
+T3N_API_KEY=...                     # Terminal 3 Agent Dev Kit
 ```
 
 The app includes intelligent fallbacks when keys are unavailable, so you can explore the UI without every integration configured.
@@ -87,11 +91,11 @@ fieldguide/
   llm.py               # Kimi + TokenRouter routing
   papers.py            # paper search pipeline
   sponsors/            # Bright Data, Kimi, TokenRouter, Nosana,
-                        # Daytona, SenseNova, VideoDB
+                        # Daytona, SenseNova, VideoDB, Terminal 3
 app.py                 # Streamlit dashboard
 scripts/check_sponsors.py
 ```
 
 ## Built with
 
-Bright Data · Kimi · TokenRouter · Nosana · Daytona · SenseNova · VideoDB
+Bright Data · Kimi · TokenRouter · Nosana · Daytona · SenseNova · VideoDB · Terminal 3

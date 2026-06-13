@@ -23,11 +23,34 @@ def _hash_embed(text: str, dim: int = 64) -> list[float]:
     return [v / norm for v in vec]
 
 
+NOSANA_API_BASE = os.getenv("NOSANA_API_URL", "https://dashboard.k8s.prd.nos.ci/api").rstrip("/")
+
+
+def _nosana_credits_ok(api_key: str) -> bool:
+    """Verify Nosana API key via credits endpoint."""
+    try:
+        with httpx.Client(timeout=20.0, trust_env=False) as client:
+            resp = client.get(
+                f"{NOSANA_API_BASE}/credits",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            return resp.status_code == 200
+    except Exception:
+        return False
+
+
 def _nosana_embed(texts: list[str]) -> list[list[float]] | None:
-    """Call Nosana-hosted embedding endpoint if configured."""
+    """Call Nosana-hosted embedding endpoint."""
     api_key = os.getenv("NOSANA_API_KEY", "").strip()
     embed_url = os.getenv("NOSANA_EMBED_URL", "").strip()
-    if not api_key or not embed_url:
+    if not api_key:
+        return None
+
+    embed_url = os.getenv("NOSANA_EMBED_URL", "").strip()
+    if not embed_url and _nosana_credits_ok(api_key):
+        embed_url = f"{NOSANA_API_BASE}/embeddings"
+
+    if not embed_url:
         return None
 
     try:

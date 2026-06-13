@@ -13,9 +13,9 @@ TaskType = Literal["field_synthesis", "email_generation", "summarization", "embe
 
 # Model routing table — maps task types to providers
 ROUTING_TABLE: dict[TaskType, dict[str, str]] = {
-    "field_synthesis": {"provider": "kimi", "model": "moonshot-v1-8k", "reason": "Long-context field reasoning"},
-    "email_generation": {"provider": "kimi", "model": "moonshot-v1-8k", "reason": "Personalized outreach drafting"},
-    "summarization": {"provider": "kimi", "model": "moonshot-v1-8k", "reason": "Summarization via Kimi"},
+    "field_synthesis": {"provider": "kimi", "model": "kimi-k2.6", "reason": "Long-context field reasoning"},
+    "email_generation": {"provider": "kimi", "model": "kimi-k2.6", "reason": "Personalized outreach drafting"},
+    "summarization": {"provider": "kimi", "model": "kimi-k2.6", "reason": "Summarization via Kimi K2.6"},
     "embedding_route": {"provider": "nosana", "model": "text-embeddings", "reason": "Graph compute routing"},
 }
 
@@ -49,7 +49,12 @@ def route_and_complete(
     # Execute via routed provider (Kimi for synthesis/email)
     from fieldguide.sponsors.kimi import kimi_complete
 
-    text = kimi_complete(messages, model=route.get("model", "moonshot-v1-8k"), temperature=temperature)
+    text = kimi_complete(
+        messages,
+        model=route.get("model", "kimi-k2.6"),
+        temperature=temperature,
+        cache_key=f"fieldguide-{task}",
+    )
     return text, route
 
 
