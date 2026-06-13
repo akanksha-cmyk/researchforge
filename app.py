@@ -148,13 +148,130 @@ div[data-testid="stFormSubmitButton"] button, .stButton > button[kind="primary"]
     color: #1a1a2e !important;
 }
 .footer-note { text-align: center; font-size: 0.72rem; color: #8892a4; padding: 1.5rem 0 0.5rem; }
+
+.hero {
+    background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(240,244,255,0.9) 100%);
+    border: 1px solid rgba(255,255,255,0.95);
+    border-radius: 28px; padding: 2rem 2.25rem; margin-bottom: 1.25rem;
+    box-shadow: 0 8px 40px rgba(99,102,241,0.1);
+}
+.hero h1 { font-size: 2rem; font-weight: 700; color: #1a1a2e; margin: 0 0 0.35rem; letter-spacing: -0.03em; }
+.hero-tag { color: #6366f1; font-size: 1rem; font-weight: 500; margin-bottom: 1rem; }
+.hero-lead { color: #475569; font-size: 0.95rem; line-height: 1.65; max-width: 680px; margin-bottom: 1.25rem; }
+.problem-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.5rem; }
+.problem-card {
+    background: rgba(255,255,255,0.7); border-radius: 16px; padding: 1rem 1.1rem;
+    border: 1px solid rgba(99,102,241,0.1);
+}
+.problem-card b { display: block; font-size: 0.82rem; color: #1a1a2e; margin-bottom: 0.25rem; }
+.problem-card span { font-size: 0.78rem; color: #64748b; line-height: 1.45; }
+
+.pipeline-strip {
+    display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 1rem;
+    background: rgba(255,255,255,0.65); border-radius: 18px; padding: 0.85rem 1rem;
+    border: 1px solid rgba(99,102,241,0.12);
+}
+.stage-chip {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0.35rem 0.65rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+    background: rgba(255,255,255,0.9); border: 1px solid rgba(0,0,0,0.06); color: #334155;
+}
+.stage-chip.ok { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.08); color: #15803d; }
+.stage-chip.fallback { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08); color: #b45309; }
+
+.sponsor-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em;
+    padding: 0.2rem 0.55rem; border-radius: 999px; margin-left: 0.5rem;
+    vertical-align: middle;
+}
+.section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0.35rem;
+}
+.section-head .tile-label { margin-bottom: 0; }
+
+.sponsor-row.active { background: rgba(99,102,241,0.06); border-radius: 8px; padding: 0.35rem 0.5rem; margin: 0 -0.5rem; }
+.sponsor-status { margin-left: auto; font-size: 0.65rem; font-weight: 600; padding: 0.1rem 0.4rem; border-radius: 999px; }
+.sponsor-status.ok { background: rgba(34,197,94,0.12); color: #15803d; }
+.sponsor-status.fallback { background: rgba(245,158,11,0.12); color: #b45309; }
+.sponsor-status.idle { background: rgba(148,163,184,0.15); color: #64748b; }
+
+.demo-banner {
+    background: linear-gradient(90deg, #4f46e5, #6366f1); color: #fff;
+    border-radius: 16px; padding: 0.85rem 1.25rem; margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    font-size: 0.88rem;
+}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-for key, default in [("pipeline", None), ("break_in", None), ("daytona_runtime", None), ("topic", "")]:
+for key, default in [
+    ("pipeline", None), ("break_in", None), ("daytona_runtime", None),
+    ("topic", ""), ("auto_search", False), ("demo_mode", False), ("auto_break_in", False),
+]:
     if key not in st.session_state:
         st.session_state[key] = default
+
+
+def sponsor_badge(sponsor_id: str) -> str:
+    s = SPONSORS[sponsor_id]
+    return (
+        f'<span class="sponsor-badge" style="background:{s.color}18;color:{s.color};">'
+        f'{s.icon} {s.name}</span>'
+    )
+
+
+def pipeline_strip(provenance) -> str:
+    if not provenance or not provenance.stages:
+        return ""
+    chips = ""
+    seen = set()
+    for stage in provenance.stages:
+        if stage.sponsor_id in seen:
+            continue
+        seen.add(stage.sponsor_id)
+        s = SPONSORS[stage.sponsor_id]
+        cls = "ok" if stage.status == "ok" else "fallback"
+        chips += (
+            f'<span class="stage-chip {cls}">'
+            f'<span style="color:{s.color}">{s.icon}</span> {s.name}'
+            f'</span>'
+        )
+    return f'<div class="pipeline-strip">{chips}</div>'
+
+
+def section_label(title: str, sponsor_id: str) -> str:
+    return f'<div class="section-head"><div class="tile-label">{title}</div>{sponsor_badge(sponsor_id)}</div>'
+
+
+def sponsor_sidebar_status(provenance) -> dict[str, str]:
+    if not provenance:
+        return {}
+    by = provenance.by_sponsor()
+    out = {}
+    for sid, stages in by.items():
+        out[sid] = "ok" if any(s.status == "ok" for s in stages) else "fallback"
+    return out
+
+
+def hero_html() -> str:
+    return """
+<div class="hero">
+  <h1>FieldGuide</h1>
+  <div class="hero-tag">Perplexity for academic careers</div>
+  <p class="hero-lead">
+    Researchers don't need more papers — they need to understand a field, find the right people,
+    and know how to break in. FieldGuide turns one search into field intelligence, a living research
+    map, and an actionable plan.
+  </p>
+  <div class="problem-grid">
+    <div class="problem-card"><b>Who matters?</b><span>Key researchers, labs, and communities in any field</span></div>
+    <div class="problem-card"><b>Where is it going?</b><span>Trends, gaps, and future directions synthesized from live data</span></div>
+    <div class="problem-card"><b>How do I get in?</b><span>Cold emails, collaborators, conferences, and a step-by-step action plan</span></div>
+  </div>
+</div>"""
 
 
 def tile(label: str, value: str, sub: str = "", blue: bool = False) -> str:
@@ -190,31 +307,58 @@ def row(icon: str, title: str, meta: str, right: str = "") -> str:
     return f'<div class="row-item"><div class="row-icon">{icon}</div><div><div class="row-title">{title}</div><div class="row-meta">{meta}</div></div>{r}</div>'
 
 
-# ── Sidebar: sponsors only ────────────────────────────────────────────────
+# ── Sidebar: sponsors + live status ─────────────────────────────────────────
+live_status = sponsor_sidebar_status(
+    st.session_state.pipeline.provenance if st.session_state.pipeline else None
+)
+
 with st.sidebar:
     st.markdown("### 🧭 FieldGuide")
     st.markdown(
         '<p style="font-size:0.78rem;color:#64748b;line-height:1.55;margin:0.25rem 0 1rem;">'
-        "Perplexity for academic careers. Search any field to discover trends, "
-        "researchers, labs, gaps — and how to break in."
+        "Navigate your future research community."
         "</p>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
-    st.markdown("**Infrastructure**")
+    st.markdown("**Pipeline**")
     for _stage, sid, label in PIPELINE_STAGES:
         s = SPONSORS[sid]
+        status = live_status.get(sid, "idle")
+        status_label = {"ok": "live", "fallback": "fallback", "idle": "—"}[status]
+        active = "active" if status != "idle" else ""
         st.markdown(
-            f'<div class="sponsor-row"><span class="sponsor-dot" style="background:{s.color}"></span>'
-            f'<span><b>{s.name}</b> · {label}</span></div>',
+            f'<div class="sponsor-row {active}"><span class="sponsor-dot" style="background:{s.color}"></span>'
+            f'<span><b>{s.name}</b> · {label}</span>'
+            f'<span class="sponsor-status {status}">{status_label}</span></div>',
             unsafe_allow_html=True,
         )
     st.markdown("---")
-    st.caption("Built using Bright Data · Kimi · TokenRouter · Nosana · Daytona · SenseNova · VideoDB")
+    st.caption("7-sponsor AI research infrastructure")
 
 # ── Main ────────────────────────────────────────────────────────────────────
-st.markdown('<div style="font-size:1.6rem;font-weight:700;color:#1a1a2e;margin-bottom:0.1rem;">Field Intelligence</div>', unsafe_allow_html=True)
-st.markdown('<div style="color:#8892a4;font-size:0.9rem;margin-bottom:1.25rem;">Navigate your future research community</div>', unsafe_allow_html=True)
+pipeline = st.session_state.pipeline
+
+if not pipeline:
+    st.markdown(hero_html(), unsafe_allow_html=True)
+
+demo_col, full_col, _ = st.columns([2, 2, 1])
+with demo_col:
+    if st.button("▶ Run live demo — griefbots", type="primary", use_container_width=True):
+        st.session_state.topic = "griefbots"
+        st.session_state.auto_search = True
+        st.session_state.demo_mode = True
+        st.session_state.auto_break_in = False
+        st.session_state.break_in = None
+        st.session_state.daytona_runtime = None
+with full_col:
+    if st.button("▶ Full demo (+ break-in plan)", use_container_width=True):
+        st.session_state.topic = "griefbots"
+        st.session_state.auto_search = True
+        st.session_state.auto_break_in = True
+        st.session_state.demo_mode = True
+        st.session_state.break_in = None
+        st.session_state.daytona_runtime = None
 
 EXAMPLES = ["griefbots", "refugee language learning", "participatory design AI", "accessibility in VR"]
 ec = st.columns(4)
@@ -227,16 +371,25 @@ prefill = st.session_state.pop("prefill", "")
 with st.form("search"):
     c1, c2 = st.columns([5, 1])
     with c1:
-        topic = st.text_input("q", value=prefill or st.session_state.topic, placeholder="Search a research field…", label_visibility="collapsed")
+        topic = st.text_input(
+            "q",
+            value=prefill or st.session_state.topic,
+            placeholder="Search a research field…",
+            label_visibility="collapsed",
+        )
     with c2:
         submitted = st.form_submit_button("Explore →", type="primary", use_container_width=True)
 
-if submitted and topic.strip():
-    st.session_state.topic = topic.strip()
-    st.session_state.break_in = None
-    st.session_state.daytona_runtime = None
-    with st.spinner("Mapping field…"):
-        st.session_state.pipeline = run_field_pipeline(st.session_state.topic)
+should_search = (submitted and topic.strip()) or st.session_state.auto_search
+if should_search:
+    query = (topic.strip() if submitted else st.session_state.topic).strip()
+    if query:
+        st.session_state.topic = query
+        st.session_state.auto_search = False
+        st.session_state.break_in = None
+        st.session_state.daytona_runtime = None
+        with st.spinner("Mapping field…"):
+            st.session_state.pipeline = run_field_pipeline(st.session_state.topic)
 
 pipeline = st.session_state.pipeline
 
@@ -246,6 +399,21 @@ if pipeline:
     papers = pipeline.papers
     growth = analysis.get("growth_percent", 35)
     topics = analysis.get("trending_topics", [])
+
+    st.markdown(
+        f'<div style="font-size:1.5rem;font-weight:700;color:#1a1a2e;margin:0.5rem 0 0.15rem;">{topic.title()}</div>'
+        f'<div style="color:#6366f1;font-size:0.88rem;margin-bottom:0.75rem;">Field intelligence report</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(pipeline_strip(pipeline.provenance), unsafe_allow_html=True)
+
+    if st.session_state.demo_mode:
+        st.markdown(
+            '<div class="demo-banner">'
+            '<span><b>Demo mode</b> — pre-loaded query. Scroll down to generate your break-in plan.</span>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
     # ── Stat tiles row ──
     t1, t2, t3, t4 = st.columns(4)
@@ -262,26 +430,25 @@ if pipeline:
     r1c1, r1c2 = st.columns([3, 2])
     with r1c1:
         overview = analysis.get("overview", "").replace("**", "")
+        st.markdown(section_label("Field Overview", "kimi"), unsafe_allow_html=True)
         st.markdown(
-            f'<div class="tile"><div class="tile-label">Field Overview</div>'
-            f'<p style="line-height:1.7;font-size:0.92rem;color:#333;margin:0.5rem 0 0.75rem;">{overview}</p>'
-            f'<span class="growth">↑ {growth}% field growth</span></div>',
+            f'<div class="tile"><p style="line-height:1.7;font-size:0.92rem;color:#333;margin:0;">{overview}</p>'
+            f'<span class="growth" style="display:inline-block;margin-top:0.75rem;">↑ {growth}% field growth</span></div>',
             unsafe_allow_html=True,
         )
     with r1c2:
         pills = "".join(f'<span class="pill">{t}</span>' for t in topics[:5])
         bars = bar_chart(topics)
-        st.markdown(
-            f'<div class="tile"><div class="tile-label">Trending Topics</div>{bars}{pills}</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown(section_label("Trending Topics", "kimi"), unsafe_allow_html=True)
+        st.markdown(f'<div class="tile">{bars}{pills}</div>', unsafe_allow_html=True)
 
     # ── Visual + Graph ──
     r2c1, r2c2 = st.columns(2)
     with r2c1:
+        st.markdown(section_label("Visual Field Map", "sensenova"), unsafe_allow_html=True)
         components.html(pipeline.field_visual, height=450, scrolling=False)
     with r2c2:
-        st.markdown('<div class="tile-label" style="margin-bottom:0.25rem;">Research Landscape</div>', unsafe_allow_html=True)
+        st.markdown(section_label("Research Landscape", "nosana"), unsafe_allow_html=True)
         components.html(pipeline.graph_html, height=400, scrolling=False)
 
     # ── Researchers + Gaps ──
@@ -304,23 +471,30 @@ if pipeline:
         row("🎤", t.get("title", ""), f'{t.get("speaker","")} · {t.get("venue","")}', t.get("insight", ""))
         for t in pipeline.talk_insights
     )
-    st.markdown(f'<div class="tile"><div class="tile-label">Conference Talk Insights</div>{talk_rows}</div>', unsafe_allow_html=True)
+    st.markdown(section_label("Conference Talk Insights", "videodb"), unsafe_allow_html=True)
+    st.markdown(f'<div class="tile">{talk_rows or "<p style=color:#8892a4>No talks indexed yet.</p>"}</div>', unsafe_allow_html=True)
 
-    with st.expander(f"Source papers ({len(papers)})"):
+    with st.expander(f"Source papers — ingested via Bright Data ({len(papers)})"):
         for p in papers[:10]:
             st.markdown(f"**[{p.title[:70]}]({p.url})** · {p.venue} · {p.citation_count}c")
 
     # ── Break in ──
+    st.markdown(section_label("Break Into This Field", "daytona"), unsafe_allow_html=True)
     st.markdown(
         '<div class="tile" style="padding-bottom:0.75rem;">'
-        '<div class="tile-label">Break Into This Field</div>'
-        '<p style="color:#64748b;font-size:0.85rem;margin:0 0 0.75rem;">'
-        "Run the research agent to get collaborators, cold emails, and an action plan."
+        '<p style="color:#64748b;font-size:0.85rem;margin:0;">'
+        "The break-in agent runs in a secure Daytona sandbox — generating collaborators, "
+        "cold emails, conferences, and a step-by-step action plan."
         "</p></div>",
         unsafe_allow_html=True,
     )
+    default_bg = (
+        "MS student in HCI with UX research experience, interested in bereavement tech and digital memorials"
+        if st.session_state.demo_mode else ""
+    )
     bg = st.text_area(
         "bg",
+        value=default_bg,
         placeholder="Your background (optional) — e.g. MS student in HCI with UX experience",
         height=68,
         label_visibility="collapsed",
@@ -330,6 +504,13 @@ if pipeline:
             plan, runtime = run_break_in_agent(topic, analysis, bg, pipeline.provenance)
             st.session_state.break_in = plan
             st.session_state.daytona_runtime = runtime
+
+    if st.session_state.auto_break_in and not st.session_state.break_in:
+        with st.spinner("Running agent…"):
+            plan, runtime = run_break_in_agent(topic, analysis, bg or default_bg, pipeline.provenance)
+            st.session_state.break_in = plan
+            st.session_state.daytona_runtime = runtime
+            st.session_state.auto_break_in = False
 
     if st.session_state.daytona_runtime:
         st.caption(f"Agent runtime: {st.session_state.daytona_runtime.get('note', '')}")
@@ -375,9 +556,11 @@ if pipeline:
 
 else:
     st.markdown(
-        '<div class="tile" style="text-align:center;padding:3rem;">'
+        '<div class="tile" style="text-align:center;padding:2.5rem;margin-top:0.5rem;">'
         '<div style="font-size:2rem;">🔍</div>'
-        '<p style="color:#8892a4;margin:0.5rem 0 0;">Search a field to see papers, people, gaps, and how to break in.</p></div>',
+        '<p style="color:#475569;margin:0.75rem 0 0.25rem;font-weight:600;">Try a search or click the live demo above</p>'
+        '<p style="color:#8892a4;margin:0;font-size:0.85rem;">'
+        'Example: griefbots, refugee language learning, participatory design AI</p></div>',
         unsafe_allow_html=True,
     )
 
