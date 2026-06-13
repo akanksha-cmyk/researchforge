@@ -124,30 +124,30 @@ div[data-testid="stFormSubmitButton"] button, .stButton > button[kind="primary"]
     box-shadow: 0 4px 14px rgba(0,0,0,0.15) !important;
 }
 .stTabs [data-baseweb="tab-list"] { background: rgba(255,255,255,0.5); border-radius: 12px; }
-.stTabs [data-baseweb="tab"] {
-    color: #64748b !important;
+.stTabs button[data-baseweb="tab"], .stTabs [data-baseweb="tab"] {
+    color: #475569 !important;
     font-weight: 500 !important;
 }
+.stTabs button[data-baseweb="tab"][aria-selected="true"],
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
-    color: #4f46e5 !important;
+    color: #4338ca !important;
     background: rgba(99,102,241,0.12) !important;
     border-radius: 8px !important;
 }
+.stTabs button[data-baseweb="tab"] p, .stTabs [data-baseweb="tab"] p {
+    color: inherit !important;
+}
 [data-testid="stSpinner"], [data-testid="stSpinner"] p,
-[data-testid="stSpinner"] span, [data-testid="stSpinner"] div {
+[data-testid="stSpinner"] span, [data-testid="stSpinner"] div,
+[data-testid="stSpinner"] label {
     color: #1a1a2e !important;
 }
-[data-testid="stStatusWidget"] p, [data-testid="stStatusWidget"] span,
-[data-testid="stStatusWidget"] label {
+[data-testid="stStatusWidget"], [data-testid="stStatusWidget"] p,
+[data-testid="stStatusWidget"] span, [data-testid="stStatusWidget"] label,
+[data-testid="stStatusWidget"] div {
     color: #1a1a2e !important;
 }
 .footer-note { text-align: center; font-size: 0.72rem; color: #8892a4; padding: 1.5rem 0 0.5rem; }
-.send-email-btn > a {
-    display: inline-block; margin-top: 0.5rem; padding: 0.45rem 1.1rem;
-    background: #4f46e5 !important; color: #fff !important;
-    border-radius: 12px !important; text-decoration: none !important;
-    font-size: 0.85rem !important; font-weight: 600 !important;
-}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -348,13 +348,9 @@ if pipeline:
                     f'<pre style="white-space:pre-wrap;font-size:0.82rem;margin-top:0.5rem;color:#334155;">{body}</pre></div>',
                     unsafe_allow_html=True,
                 )
-                mailto = "mailto:?{}".format(
-                    urllib.parse.urlencode({"subject": subject, "body": body}, quote_via=urllib.parse.quote)
-                )
-                st.markdown(
-                    f'<div class="send-email-btn"><a href="{mailto}" target="_blank">Send email</a></div>',
-                    unsafe_allow_html=True,
-                )
+                mailto_addr = urllib.parse.quote(recipient) if recipient else ""
+                mailto = f"mailto:{mailto_addr}?{urllib.parse.urlencode({'subject': subject, 'body': body}, quote_via=urllib.parse.quote)}"
+                st.link_button("Send email", mailto, type="primary")
         with tabs[1]:
             for c in plan.get("potential_collaborators", []):
                 st.markdown(
