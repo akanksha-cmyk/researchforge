@@ -11,7 +11,7 @@ TOKENROUTER_BASE = "https://api.tokenrouter.io/v1"
 
 TaskType = Literal["field_synthesis", "email_generation", "summarization", "embedding_route"]
 
-# Explicit routing table — visible to judges
+# Model routing table — maps task types to providers
 ROUTING_TABLE: dict[TaskType, dict[str, str]] = {
     "field_synthesis": {"provider": "kimi", "model": "moonshot-v1-8k", "reason": "Long-context field reasoning"},
     "email_generation": {"provider": "kimi", "model": "moonshot-v1-8k", "reason": "Personalized outreach drafting"},

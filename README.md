@@ -60,6 +60,8 @@ streamlit run app.py
 
 Open `http://localhost:8501` and search any research field.
 
+Click **▶ Full demo (+ break-in plan)** to run a pre-loaded search with all pipeline stages and a generated break-in plan.
+
 ## Environment variables
 
 ```env

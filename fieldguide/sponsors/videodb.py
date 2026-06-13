@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-# Curated conference talk knowledge base (hackathon-ready fallback)
+# Curated conference talk knowledge base (offline fallback)
 TALK_KNOWLEDGE: dict[str, list[dict[str, str]]] = {
     "grief": [
         {
